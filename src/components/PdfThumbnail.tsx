@@ -1,15 +1,24 @@
 import { Document, Page, pdfjs } from "react-pdf"
 
-// required worker setup
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   "pdfjs-dist/build/pdf.worker.min.mjs",
-  import.meta.url
+  import.meta.url,
 ).toString()
 
-export default function PdfThumbnail(file: File, size = 150) {
+interface Props {
+  file: File
+  width?: number
+}
+
+export default function PdfThumbnail({ file, width = 150 }: Props) {
   return (
     <Document file={file}>
-      <Page pageNumber={1} width={size} />
+      <Page
+        pageNumber={1}
+        width={width}
+        renderTextLayer={false}
+        renderAnnotationLayer={false}
+      />
     </Document>
   )
 }
