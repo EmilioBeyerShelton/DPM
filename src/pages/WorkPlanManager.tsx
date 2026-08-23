@@ -170,7 +170,7 @@ export default function WorkPlanManager() {
         <div className="flex flex-col gap-4">
           <h2 className="text-base font-semibold">Mapped Work Plan</h2>
 
-          <div className="flex flex-wrap gap-4 text-sm">
+          {/* <div className="flex flex-wrap gap-4 text-sm">
             <div className="rounded border px-3 py-2">
               <span className="font-medium text-gray-500">Employee: </span>
               <span>{mappedEntry.employee ?? "—"}</span>
@@ -181,7 +181,7 @@ export default function WorkPlanManager() {
                 <span>{mappedEntry.notes}</span>
               </div>
             )}
-          </div>
+          </div> */}
 
           <div className="overflow-auto rounded border">
             <table className="w-full text-left text-xs">
@@ -225,6 +225,7 @@ export default function WorkPlanManager() {
               </tbody>
             </table>
           </div>
+          <div>cards</div>
         </div>
       )}
 
