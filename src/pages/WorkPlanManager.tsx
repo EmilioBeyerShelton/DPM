@@ -4,9 +4,14 @@ import type { TextItem } from "pdfjs-dist/types/src/display/api"
 import PdfThumbnail from "@/components/PdfThumbnail"
 import defaultAreas from "@/config/defaultAreas"
 import { mapTextNodesToWorkPlan } from "@/lib/workPlanMapper"
-import type { AreaConfig, WorkPlanEntry } from "@/types/workPlanTypes"
+import { dayEntryToShiftDTO } from "@/lib/shiftMapper"
+import type { AreaConfig, ShiftDTO, WorkPlanEntry } from "@/types/workPlanTypes"
 import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field"
+import ShiftCard from "@/components/ShiftCard"
+import PdfViewerDialog from "@/components/PdfViewerDialog"
+import { generateIcs, downloadIcs } from "@/lib/icsExport"
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   "pdfjs-dist/build/pdf.worker.min.mjs",
@@ -22,18 +27,28 @@ interface TextNode {
   height: number
 }
 
-const DAY_LABELS: Array<{
-  key: "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun"
-  label: string
-}> = [
-  { key: "mon", label: "Mon" },
-  { key: "tue", label: "Tue" },
-  { key: "wed", label: "Wed" },
-  { key: "thu", label: "Thu" },
-  { key: "fri", label: "Fri" },
-  { key: "sat", label: "Sat" },
-  { key: "sun", label: "Sun" },
+type DayKey = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun"
+
+const DAY_LABELS: Array<{ key: DayKey; label: string }> = [
+  { key: "mon", label: "Mo" },
+  { key: "tue", label: "Di" },
+  { key: "wed", label: "Mi" },
+  { key: "thu", label: "Do" },
+  { key: "fri", label: "Fr" },
+  { key: "sat", label: "Sa" },
+  { key: "sun", label: "So" },
 ]
+
+function entryToShifts(
+  entry: WorkPlanEntry
+): Partial<Record<DayKey, ShiftDTO>> {
+  const result: Partial<Record<DayKey, ShiftDTO>> = {}
+  for (const { key } of DAY_LABELS) {
+    const dayEntry = entry.schedule[key]
+    if (dayEntry) result[key] = dayEntryToShiftDTO(dayEntry)
+  }
+  return result
+}
 
 export default function WorkPlanManager() {
   const [pdfFile, setPdfFile] = useState<File | null>(null)
@@ -41,7 +56,20 @@ export default function WorkPlanManager() {
   const [isExtracting, setIsExtracting] = useState(false)
   const [areaConfig, setAreaConfig] = useState<AreaConfig>(defaultAreas)
   const [mappedEntry, setMappedEntry] = useState<WorkPlanEntry | null>(null)
+  const [shifts, setShifts] = useState<Partial<Record<DayKey, ShiftDTO>>>({})
   const [pageHeight, setPageHeight] = useState(0)
+  const [loadCount, setLoadCount] = useState(0)
+  const [pdfDialogOpen, setPdfDialogOpen] = useState(false)
+
+  function applyEntry(entry: WorkPlanEntry) {
+    setMappedEntry(entry)
+    setShifts(entryToShifts(entry))
+    setLoadCount((c) => c + 1)
+  }
+
+  function updateShift(key: DayKey, updated: ShiftDTO) {
+    setShifts((prev) => ({ ...prev, [key]: updated }))
+  }
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -50,6 +78,7 @@ export default function WorkPlanManager() {
     setPdfFile(file)
     setTextNodes([])
     setMappedEntry(null)
+    setShifts({})
     setIsExtracting(true)
 
     try {
@@ -60,12 +89,10 @@ export default function WorkPlanManager() {
 
       for (let pageNum = 1; pageNum <= doc.numPages; pageNum++) {
         const page = await doc.getPage(pageNum)
-
         if (pageNum === 1) {
           ph = page.getViewport({ scale: 1 }).height
           setPageHeight(ph)
         }
-
         const content = await page.getTextContent()
         for (const item of content.items) {
           const textItem = item as TextItem
@@ -83,7 +110,7 @@ export default function WorkPlanManager() {
 
       const sorted = nodes.sort((a, b) => b.y - a.y)
       setTextNodes(sorted)
-      setMappedEntry(mapTextNodesToWorkPlan(sorted, areaConfig, ph))
+      applyEntry(mapTextNodesToWorkPlan(sorted, areaConfig, ph))
     } finally {
       setIsExtracting(false)
     }
@@ -96,15 +123,12 @@ export default function WorkPlanManager() {
     reader.onload = (ev) => {
       try {
         const parsed = JSON.parse(ev.target?.result as string)
-        // Accept either a plain Area[] array (new format from reworked editor)
-        // or an AreaConfig object (with optional pdfWidth metadata)
         const config: AreaConfig = Array.isArray(parsed)
           ? { boxes: parsed }
           : parsed
         setAreaConfig(config)
-        // Re-run mapper if we already have text nodes
         if (textNodes.length > 0 && pageHeight > 0) {
-          setMappedEntry(mapTextNodesToWorkPlan(textNodes, config, pageHeight))
+          applyEntry(mapTextNodesToWorkPlan(textNodes, config, pageHeight))
         }
       } catch {
         alert("Invalid JSON file.")
@@ -117,7 +141,6 @@ export default function WorkPlanManager() {
   return (
     <div className="flex min-h-svh flex-col gap-8 p-6">
       {/* ── file inputs ──────────────────────────────────────────────── */}
-
       <div className="flex flex-wrap gap-6">
         <Field>
           <FieldLabel htmlFor="pdf-upload">Upload PDF Timetable</FieldLabel>
@@ -154,10 +177,20 @@ export default function WorkPlanManager() {
       {pdfFile && (
         <div className="flex flex-col gap-2">
           <p className="text-sm font-medium">Preview</p>
-          <div className="w-fit overflow-hidden rounded border shadow-sm">
-            <PdfThumbnail file={pdfFile} width={220} />
-          </div>
+          <button
+            type="button"
+            onClick={() => setPdfDialogOpen(true)}
+            className="w-fit cursor-zoom-in overflow-hidden rounded border shadow-sm transition-opacity hover:opacity-80"
+          >
+            <PdfThumbnail file={pdfFile} width={320} />
+          </button>
           <p className="text-xs text-gray-500">{pdfFile.name}</p>
+
+          <PdfViewerDialog
+            file={pdfFile}
+            open={pdfDialogOpen}
+            onOpenChange={setPdfDialogOpen}
+          />
         </div>
       )}
 
@@ -165,72 +198,77 @@ export default function WorkPlanManager() {
         <p className="text-sm text-gray-500">Extracting text…</p>
       )}
 
-      {/* ── Mapped work plan ─────────────────────────────────────────── */}
+      {/* ── Shift cards ──────────────────────────────────────────────── */}
       {mappedEntry && (
         <div className="flex flex-col gap-4">
-          <h2 className="text-base font-semibold">Mapped Work Plan</h2>
+          <Button
+            size="sm"
+            className="w-fit"
+            onClick={() => {
+              const entries = DAY_LABELS.flatMap(({ key, label }) => {
+                const shift = shifts[key]
+                if (!shift || (!shift.startTime && !shift.endTime)) return []
+                return [{ key, label, shift }]
+              })
+              downloadIcs(generateIcs(entries))
+            }}
+          >
+            In Kalender exportieren
+          </Button>
 
-          {/* <div className="flex flex-wrap gap-4 text-sm">
-            <div className="rounded border px-3 py-2">
-              <span className="font-medium text-gray-500">Employee: </span>
-              <span>{mappedEntry.employee ?? "—"}</span>
-            </div>
-            {mappedEntry.notes && (
-              <div className="rounded border px-3 py-2">
-                <span className="font-medium text-gray-500">Notes: </span>
-                <span>{mappedEntry.notes}</span>
-              </div>
-            )}
-          </div> */}
-
-          <div className="overflow-auto rounded border">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-gray-100">
-                <tr>
-                  <th className="px-3 py-2 font-medium">Day</th>
-                  <th className="px-3 py-2 font-medium">Date</th>
-                  <th className="px-3 py-2 font-medium">Start</th>
-                  <th className="px-3 py-2 font-medium">End</th>
-                  <th className="px-3 py-2 font-medium">Total</th>
-                  <th className="px-3 py-2 font-medium">Notes</th>
-                </tr>
-              </thead>
-              <tbody>
-                {DAY_LABELS.map(({ key, label }) => {
-                  const day = mappedEntry.schedule[key]
-                  return (
-                    <tr
-                      key={key}
-                      className="border-t odd:bg-white even:bg-gray-50"
-                    >
-                      <td className="px-3 py-1.5 font-medium">{label}</td>
-                      <td className="px-3 py-1.5 tabular-nums">
-                        {day?.date ?? "—"}
-                      </td>
-                      <td className="px-3 py-1.5 tabular-nums">
-                        {day?.startTime ?? "—"}
-                      </td>
-                      <td className="px-3 py-1.5 tabular-nums">
-                        {day?.endTime ?? "—"}
-                      </td>
-                      <td className="px-3 py-1.5 tabular-nums">
-                        {day?.timeSum ?? "—"}
-                      </td>
-                      <td className="max-w-xs px-3 py-1.5">
-                        {day?.notes ?? "—"}
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+          {/* Desktop: wrapping week table, min 180 px per day */}
+          <div className="hidden md:grid md:gap-2 [grid-template-columns:repeat(auto-fill,minmax(180px,1fr))]">
+            {DAY_LABELS.map(({ key, label }) => {
+              const shift = shifts[key]
+              const hasShift = shift && (shift.startTime || shift.endTime)
+              return (
+                <div
+                  key={`${key}-${loadCount}`}
+                  className="flex min-w-0 flex-col gap-1.5"
+                >
+                  <p className="text-center text-xs font-medium text-muted-foreground">
+                    {label}
+                  </p>
+                  {hasShift ? (
+                    <ShiftCard
+                      dayLabel={label}
+                      {...shift}
+                      onChange={(updated) => updateShift(key, updated)}
+                    />
+                  ) : (
+                    <div className="grow rounded-xl border border-dashed opacity-30" />
+                  )}
+                </div>
+              )
+            })}
           </div>
-          <div>cards</div>
+
+          {/* Mobile: vertical stack with day labels */}
+          <div className="flex flex-col gap-2 md:hidden">
+            {DAY_LABELS.map(({ key, label }) => {
+              const shift = shifts[key]
+              const hasShift = shift && (shift.startTime || shift.endTime)
+              return (
+                <div key={`${key}-${loadCount}`} className="flex flex-col gap-1.5">
+                  <p className="text-xs font-medium text-muted-foreground">{label}</p>
+                  {hasShift ? (
+                    <ShiftCard
+                      dayLabel={label}
+                      {...shift}
+                      onChange={(updated) => updateShift(key, updated)}
+                    />
+                  ) : (
+                    <div className="h-6 rounded-lg border border-dashed opacity-30" />
+                  )}
+                </div>
+              )
+            })}
+          </div>
         </div>
       )}
 
       {/* ── Raw text nodes ───────────────────────────────────────────── */}
-      {textNodes.length > 0 && (
+      {/* {textNodes.length > 0 && (
         <details className="flex flex-col gap-2">
           <summary className="cursor-pointer text-sm font-medium text-gray-500">
             Raw Text Nodes ({textNodes.length})
@@ -264,7 +302,7 @@ export default function WorkPlanManager() {
             </table>
           </div>
         </details>
-      )}
+      )} */}
     </div>
   )
 }

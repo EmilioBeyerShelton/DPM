@@ -6,9 +6,19 @@ export interface DayEntry {
   notes?: string
 }
 
+export interface ShiftDTO {
+  date?: Date
+  startTime?: Date
+  endTime?: Date
+  timeSum?: number
+  notes?: string
+}
+
 export interface WorkPlanEntry {
   employee?: string
-  schedule: Partial<Record<"mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun", DayEntry>>
+  schedule: Partial<
+    Record<"mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun", DayEntry>
+  >
   notes?: string
 }
 
