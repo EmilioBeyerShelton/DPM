@@ -60,6 +60,8 @@ export default function WorkPlanManager() {
   const [pageHeight, setPageHeight] = useState(0)
   const [loadCount, setLoadCount] = useState(0)
   const [pdfDialogOpen, setPdfDialogOpen] = useState(false)
+  const [eventTitle, setEventTitle] = useState("Arbeiten Flora")
+  const [notesPrefix, setNotesPrefix] = useState("shows: ")
 
   function applyEntry(entry: WorkPlanEntry) {
     setMappedEntry(entry)
@@ -201,23 +203,44 @@ export default function WorkPlanManager() {
       {/* ── Shift cards ──────────────────────────────────────────────── */}
       {mappedEntry && (
         <div className="flex flex-col gap-4">
-          <Button
-            size="sm"
-            className="w-fit"
-            onClick={() => {
-              const entries = DAY_LABELS.flatMap(({ key, label }) => {
-                const shift = shifts[key]
-                if (!shift || (!shift.startTime && !shift.endTime)) return []
-                return [{ key, label, shift }]
-              })
-              downloadIcs(generateIcs(entries))
-            }}
-          >
-            In Kalender exportieren
-          </Button>
+          <div className="flex flex-wrap items-end gap-3">
+            <Field>
+              <FieldLabel htmlFor="event-title">Ereignistitel</FieldLabel>
+              <Input
+                id="event-title"
+                value={eventTitle}
+                onChange={(e) => setEventTitle(e.target.value)}
+                className="w-48"
+              />
+            </Field>
+
+            <Field>
+              <FieldLabel htmlFor="notes-prefix">Notizen-Präfix</FieldLabel>
+              <Input
+                id="notes-prefix"
+                value={notesPrefix}
+                onChange={(e) => setNotesPrefix(e.target.value)}
+                className="w-36"
+              />
+            </Field>
+
+            <Button
+              className="mb-0.5"
+              onClick={() => {
+                const entries = DAY_LABELS.flatMap(({ key, label }) => {
+                  const shift = shifts[key]
+                  if (!shift || (!shift.startTime && !shift.endTime)) return []
+                  return [{ key, label, shift }]
+                })
+                downloadIcs(generateIcs(entries, { eventTitle, notesPrefix }))
+              }}
+            >
+              In Kalender exportieren
+            </Button>
+          </div>
 
           {/* Desktop: wrapping week table, min 180 px per day */}
-          <div className="hidden md:grid md:gap-2 [grid-template-columns:repeat(auto-fill,minmax(180px,1fr))]">
+          <div className="hidden [grid-template-columns:repeat(auto-fill,minmax(180px,1fr))] md:grid md:gap-2">
             {DAY_LABELS.map(({ key, label }) => {
               const shift = shifts[key]
               const hasShift = shift && (shift.startTime || shift.endTime)
@@ -249,8 +272,13 @@ export default function WorkPlanManager() {
               const shift = shifts[key]
               const hasShift = shift && (shift.startTime || shift.endTime)
               return (
-                <div key={`${key}-${loadCount}`} className="flex flex-col gap-1.5">
-                  <p className="text-xs font-medium text-muted-foreground">{label}</p>
+                <div
+                  key={`${key}-${loadCount}`}
+                  className="flex flex-col gap-1.5"
+                >
+                  <p className="text-xs font-medium text-muted-foreground">
+                    {label}
+                  </p>
                   {hasShift ? (
                     <ShiftCard
                       dayLabel={label}

@@ -24,16 +24,22 @@ function fmtUtc(d: Date): string {
   return d.toISOString().replace(/[-:.]/g, "").slice(0, 15) + "Z"
 }
 
-export function generateIcs(entries: ShiftExportEntry[]): string {
+export interface IcsConfig {
+  eventTitle?: string
+  notesPrefix?: string
+}
+
+export function generateIcs(entries: ShiftExportEntry[], config: IcsConfig = {}): string {
+  const { eventTitle = "Arbeiten Flora", notesPrefix = "" } = config
   const dtstamp = fmtUtc(new Date())
 
   const events = entries
     .filter((e) => e.shift.startTime && e.shift.endTime)
-    .map(({ key, label, shift }) => {
+    .map(({ key, shift }) => {
       const uid = `${key}-${fmtLocal(shift.startTime!)}-${Date.now()}@arbeitsplan`
       const descParts: string[] = []
       if (shift.timeSum != null) descParts.push(`Gesamt: ${shift.timeSum}h`)
-      if (shift.notes) descParts.push(shift.notes)
+      if (shift.notes) descParts.push(`${notesPrefix}${shift.notes}`)
 
       const lines = [
         "BEGIN:VEVENT",
@@ -41,7 +47,7 @@ export function generateIcs(entries: ShiftExportEntry[]): string {
         `DTSTAMP:${dtstamp}`,
         `DTSTART:${fmtLocal(shift.startTime!)}`,
         `DTEND:${fmtLocal(shift.endTime!)}`,
-        `SUMMARY:Schicht ${label}`,
+        `SUMMARY:${eventTitle}`,
       ]
       if (descParts.length) lines.push(`DESCRIPTION:${descParts.join("\\n")}`)
       lines.push("END:VEVENT")
