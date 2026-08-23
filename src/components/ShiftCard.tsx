@@ -89,15 +89,15 @@ export default function ShiftCard({
             value={dateVal}
             onChange={(e) => setDateVal(e.target.value)}
             onBlur={commit}
-            className="h-6 min-w-0 flex-1 text-xs"
+            className=""
           />
         </div>
       </CardHeader>
 
       {/* ── Content: Von / Bis / Notizen ───────────────────────────── */}
-      <CardContent className="px-3 pt-0 pb-3">
-        <div className="flex gap-2">
-          <div className="grid flex-1 gap-0.5">
+      <CardContent className="overflow-x-hidden px-3 pt-0 pb-3">
+        <div className="flex w-full flex-row justify-evenly gap-2">
+          <div className="grid gap-0.5">
             <Label
               htmlFor={`${id}-start`}
               className="text-xs font-normal text-muted-foreground"
@@ -110,11 +110,12 @@ export default function ShiftCard({
               value={startVal}
               onChange={(e) => setStartVal(e.target.value)}
               onBlur={commit}
-              className="h-6 w-full text-xs"
+              className=""
             />
           </div>
+          <div className="self-center">-</div>
 
-          <div className="grid flex-1 gap-0.5">
+          <div className="grid gap-0.5">
             <Label
               htmlFor={`${id}-end`}
               className="text-xs font-normal text-muted-foreground"
@@ -127,20 +128,27 @@ export default function ShiftCard({
               value={endVal}
               onChange={(e) => setEndVal(e.target.value)}
               onBlur={commit}
-              className="h-6 w-full text-xs"
+              className=""
             />
           </div>
         </div>
-
-        <Input
-          id={`${id}-notes`}
-          type="text"
-          value={notesVal}
-          onChange={(e) => setNotesVal(e.target.value)}
-          onBlur={commit}
-          placeholder="Notizen"
-          className="mt-2 h-6 w-full text-xs"
-        />
+        <div className="mt-2 grid flex-1 gap-0.5">
+          <Label
+            htmlFor={`${id}-notes`}
+            className="text-xs font-normal text-muted-foreground"
+          >
+            Notiz
+          </Label>
+          <Input
+            id={`${id}-notes`}
+            type="text"
+            value={notesVal}
+            onChange={(e) => setNotesVal(e.target.value)}
+            onBlur={commit}
+            placeholder="Notizen"
+            className="w-full"
+          />
+        </div>
         <div className="-mb-2 flex items-center justify-center pt-2">
           <div className="text-gray-300">{sumVal} h</div>
         </div>
