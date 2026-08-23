@@ -1,16 +1,24 @@
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { pdfjs } from "react-pdf"
 import type { TextItem } from "pdfjs-dist/types/src/display/api"
+import { Settings2Icon, UploadIcon } from "lucide-react"
 import PdfThumbnail from "@/components/PdfThumbnail"
+import PdfViewerDialog from "@/components/PdfViewerDialog"
 import defaultAreas from "@/config/defaultAreas"
 import { mapTextNodesToWorkPlan } from "@/lib/workPlanMapper"
 import { dayEntryToShiftDTO } from "@/lib/shiftMapper"
 import type { AreaConfig, ShiftDTO, WorkPlanEntry } from "@/types/workPlanTypes"
-import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog"
 import ShiftCard from "@/components/ShiftCard"
-import PdfViewerDialog from "@/components/PdfViewerDialog"
 import { generateIcs, downloadIcs } from "@/lib/icsExport"
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
@@ -60,8 +68,12 @@ export default function WorkPlanManager() {
   const [pageHeight, setPageHeight] = useState(0)
   const [loadCount, setLoadCount] = useState(0)
   const [pdfDialogOpen, setPdfDialogOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const [eventTitle, setEventTitle] = useState("Arbeiten Flora")
   const [notesPrefix, setNotesPrefix] = useState("shows: ")
+
+  const pdfInputRef = useRef<HTMLInputElement>(null)
+  const areasInputRef = useRef<HTMLInputElement>(null)
 
   function applyEntry(entry: WorkPlanEntry) {
     setMappedEntry(entry)
@@ -115,6 +127,7 @@ export default function WorkPlanManager() {
       applyEntry(mapTextNodesToWorkPlan(sorted, areaConfig, ph))
     } finally {
       setIsExtracting(false)
+      e.target.value = ""
     }
   }
 
@@ -141,44 +154,80 @@ export default function WorkPlanManager() {
   }
 
   return (
-    <div className="flex min-h-svh flex-col gap-8 p-6">
-      {/* ── file inputs ──────────────────────────────────────────────── */}
-      <div className="flex flex-wrap gap-6">
-        <Field>
-          <FieldLabel htmlFor="pdf-upload">Upload PDF Timetable</FieldLabel>
-          <Input
-            id="pdf-upload"
-            type="file"
-            accept="application/pdf"
-            onChange={handleFileChange}
-            className="w-fit cursor-pointer"
-          />
-          <FieldDescription>Upload PDF Timetable</FieldDescription>
-        </Field>
+    <div className="relative flex min-h-svh flex-col gap-8 p-6">
 
-        <Field>
-          <FieldLabel htmlFor="areas-upload">
-            Area Configuration (JSON)
-          </FieldLabel>
-          <Input
-            id="areas-upload"
-            type="file"
-            accept="application/json"
-            onChange={handleAreasUpload}
-            className="w-fit cursor-pointer text-sm"
-          />
-          <FieldDescription>
-            {areaConfig === defaultAreas
-              ? "Using built-in default — upload a JSON from BoundingBoxEditor to override"
-              : "Custom configuration loaded"}
-          </FieldDescription>
-        </Field>
-      </div>
+      {/* ── Settings gear ────────────────────────────────────────────── */}
+      <Button
+        size="icon-sm"
+        variant="ghost"
+        className="absolute right-4 top-4"
+        onClick={() => setSettingsOpen(true)}
+        aria-label="Einstellungen"
+      >
+        <Settings2Icon />
+      </Button>
 
-      {/* ── PDF preview ──────────────────────────────────────────────── */}
-      {pdfFile && (
+      {/* ── Settings dialog ──────────────────────────────────────────── */}
+      <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Einstellungen</DialogTitle>
+            <DialogDescription>
+              Konfiguration für den Bereichs-Mapper
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex flex-col gap-4">
+            <Field>
+              <FieldLabel>Bereichs-Konfiguration (JSON)</FieldLabel>
+              <FieldDescription>
+                {areaConfig === defaultAreas
+                  ? "Standard-Konfiguration aktiv"
+                  : "Benutzerdefinierte Konfiguration geladen"}
+              </FieldDescription>
+              <input
+                ref={areasInputRef}
+                type="file"
+                accept="application/json"
+                className="hidden"
+                onChange={handleAreasUpload}
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-fit"
+                onClick={() => areasInputRef.current?.click()}
+              >
+                <UploadIcon />
+                JSON hochladen
+              </Button>
+            </Field>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── PDF upload / preview ─────────────────────────────────────── */}
+      <input
+        ref={pdfInputRef}
+        type="file"
+        accept="application/pdf"
+        className="hidden"
+        onChange={handleFileChange}
+      />
+
+      {!pdfFile ? (
+        <div className="flex flex-col gap-3">
+          <Button
+            variant="outline"
+            className="w-fit gap-2"
+            onClick={() => pdfInputRef.current?.click()}
+          >
+            <UploadIcon />
+            PDF Timetable hochladen
+          </Button>
+        </div>
+      ) : (
         <div className="flex flex-col gap-2">
-          <p className="text-sm font-medium">Preview</p>
           <button
             type="button"
             onClick={() => setPdfDialogOpen(true)}
@@ -186,7 +235,16 @@ export default function WorkPlanManager() {
           >
             <PdfThumbnail file={pdfFile} width={320} />
           </button>
-          <p className="text-xs text-gray-500">{pdfFile.name}</p>
+          <div className="flex items-center gap-2">
+            <p className="text-xs text-muted-foreground">{pdfFile.name}</p>
+            <Button
+              size="xs"
+              variant="ghost"
+              onClick={() => pdfInputRef.current?.click()}
+            >
+              Ändern
+            </Button>
+          </div>
 
           <PdfViewerDialog
             file={pdfFile}
@@ -197,7 +255,7 @@ export default function WorkPlanManager() {
       )}
 
       {isExtracting && (
-        <p className="text-sm text-gray-500">Extracting text…</p>
+        <p className="text-sm text-muted-foreground">Extracting text…</p>
       )}
 
       {/* ── Shift cards ──────────────────────────────────────────────── */}
@@ -294,43 +352,6 @@ export default function WorkPlanManager() {
           </div>
         </div>
       )}
-
-      {/* ── Raw text nodes ───────────────────────────────────────────── */}
-      {/* {textNodes.length > 0 && (
-        <details className="flex flex-col gap-2">
-          <summary className="cursor-pointer text-sm font-medium text-gray-500">
-            Raw Text Nodes ({textNodes.length})
-          </summary>
-          <div className="mt-2 overflow-auto rounded border">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-gray-100">
-                <tr>
-                  <th className="px-3 py-2 font-medium">Page</th>
-                  <th className="px-3 py-2 font-medium">Text</th>
-                  <th className="px-3 py-2 font-medium">X</th>
-                  <th className="px-3 py-2 font-medium">Y</th>
-                  <th className="px-3 py-2 font-medium">W</th>
-                  <th className="px-3 py-2 font-medium">H</th>
-                </tr>
-              </thead>
-              <tbody>
-                {textNodes.map((node, i) => (
-                  <tr key={i} className="border-t odd:bg-white even:bg-gray-50">
-                    <td className="px-3 py-1 tabular-nums">{node.page}</td>
-                    <td className="max-w-xs truncate px-3 py-1 font-mono">
-                      {node.str}
-                    </td>
-                    <td className="px-3 py-1 tabular-nums">{node.x}</td>
-                    <td className="px-3 py-1 tabular-nums">{node.y}</td>
-                    <td className="px-3 py-1 tabular-nums">{node.width}</td>
-                    <td className="px-3 py-1 tabular-nums">{node.height}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </details>
-      )} */}
     </div>
   )
 }
