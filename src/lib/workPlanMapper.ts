@@ -1,4 +1,4 @@
-import type { Area, AreaConfig, DayEntry, WorkPlanEntry } from "@/types/workPlanTypes"
+import type { AreaConfig, DayEntry, WorkPlanEntry } from "@/types/workPlanTypes"
 
 export interface TextNode {
   page: number

@@ -42,7 +42,7 @@ export default function ShiftCard({
   const [dateVal, setDateVal] = useState(toDateInput(date))
   const [startVal, setStartVal] = useState(toTimeInput(startTime))
   const [endVal, setEndVal] = useState(toTimeInput(endTime))
-  const [sumVal, setSumVal] = useState(toSumInput(timeSum))
+  const sumVal = toSumInput(timeSum)
   const [notesVal, setNotesVal] = useState(notes ?? "")
 
   function buildDTO(): ShiftDTO {
