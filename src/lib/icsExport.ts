@@ -24,6 +24,21 @@ function fmtUtc(d: Date): string {
   return d.toISOString().replace(/[-:.]/g, "").slice(0, 15) + "Z"
 }
 
+// ISO 8601 week number
+function isoWeek(date: Date): number {
+  const d = new Date(date)
+  d.setHours(0, 0, 0, 0)
+  d.setDate(d.getDate() + 3 - ((d.getDay() + 6) % 7))
+  const jan4 = new Date(d.getFullYear(), 0, 4)
+  return 1 + Math.round(((d.getTime() - jan4.getTime()) / 86_400_000 - 3 + ((jan4.getDay() + 6) % 7)) / 7)
+}
+
+export function icsFilename(entries: ShiftExportEntry[]): string {
+  const first = entries.find((e) => e.shift.startTime)?.shift.startTime
+  if (!first) return "arbeitsplan.ics"
+  return `Plan_KW${isoWeek(first)}.ics`
+}
+
 export interface IcsConfig {
   eventTitle?: string
   notesPrefix?: string

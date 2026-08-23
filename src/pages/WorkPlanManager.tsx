@@ -19,7 +19,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog"
 import ShiftCard from "@/components/ShiftCard"
-import { generateIcs, downloadIcs } from "@/lib/icsExport"
+import { generateIcs, downloadIcs, icsFilename } from "@/lib/icsExport"
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   "pdfjs-dist/build/pdf.worker.min.mjs",
@@ -290,7 +290,7 @@ export default function WorkPlanManager() {
                   if (!shift || (!shift.startTime && !shift.endTime)) return []
                   return [{ key, label, shift }]
                 })
-                downloadIcs(generateIcs(entries, { eventTitle, notesPrefix }))
+                downloadIcs(generateIcs(entries, { eventTitle, notesPrefix }), icsFilename(entries))
               }}
             >
               In Kalender exportieren
