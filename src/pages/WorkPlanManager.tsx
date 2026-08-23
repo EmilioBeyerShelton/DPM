@@ -154,13 +154,12 @@ export default function WorkPlanManager() {
   }
 
   return (
-    <div className="relative flex min-h-svh flex-col gap-8 p-6">
-
+    <div className="relative flex min-h-svh flex-col justify-center gap-8 p-6">
       {/* ── Settings gear ────────────────────────────────────────────── */}
       <Button
         size="icon-sm"
         variant="ghost"
-        className="absolute right-4 top-4"
+        className="absolute top-4 right-4 z-10"
         onClick={() => setSettingsOpen(true)}
         aria-label="Einstellungen"
       >
@@ -216,7 +215,7 @@ export default function WorkPlanManager() {
       />
 
       {!pdfFile ? (
-        <div className="flex flex-col gap-3">
+        <div className="flex w-full justify-center">
           <Button
             variant="outline"
             className="w-fit gap-2"
@@ -227,7 +226,7 @@ export default function WorkPlanManager() {
           </Button>
         </div>
       ) : (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col items-center gap-2">
           <button
             type="button"
             onClick={() => setPdfDialogOpen(true)}
@@ -260,37 +259,39 @@ export default function WorkPlanManager() {
 
       {/* ── Shift cards ──────────────────────────────────────────────── */}
       {mappedEntry && (
-        <div className="flex flex-col gap-4">
-          <div className="flex flex-wrap items-end gap-3">
-            <Field>
+        <div className="flex flex-col justify-center gap-12">
+          <div className="flex w-full flex-col items-center justify-center gap-6">
+            <Field className="max-w-80">
               <FieldLabel htmlFor="event-title">Ereignistitel</FieldLabel>
               <Input
                 id="event-title"
                 value={eventTitle}
                 onChange={(e) => setEventTitle(e.target.value)}
-                className="w-48"
               />
             </Field>
 
-            <Field>
+            <Field className="max-w-80">
               <FieldLabel htmlFor="notes-prefix">Notizen-Präfix</FieldLabel>
               <Input
                 id="notes-prefix"
                 value={notesPrefix}
                 onChange={(e) => setNotesPrefix(e.target.value)}
-                className="w-36"
               />
             </Field>
 
             <Button
-              className="mb-0.5"
+              size="lg"
+              className="max-w-56"
               onClick={() => {
                 const entries = DAY_LABELS.flatMap(({ key, label }) => {
                   const shift = shifts[key]
                   if (!shift || (!shift.startTime && !shift.endTime)) return []
                   return [{ key, label, shift }]
                 })
-                downloadIcs(generateIcs(entries, { eventTitle, notesPrefix }), icsFilename(entries))
+                downloadIcs(
+                  generateIcs(entries, { eventTitle, notesPrefix }),
+                  icsFilename(entries)
+                )
               }}
             >
               In Kalender exportieren
@@ -317,7 +318,7 @@ export default function WorkPlanManager() {
                       onChange={(updated) => updateShift(key, updated)}
                     />
                   ) : (
-                    <div className="grow rounded-xl border border-dashed opacity-30" />
+                    <div className="grow rounded-xl border border-dashed" />
                   )}
                 </div>
               )
@@ -344,11 +345,30 @@ export default function WorkPlanManager() {
                       onChange={(updated) => updateShift(key, updated)}
                     />
                   ) : (
-                    <div className="h-6 rounded-lg border border-dashed opacity-30" />
+                    <div className="h-6 rounded-lg border border-dashed" />
                   )}
                 </div>
               )
             })}
+          </div>
+          <div className="flex w-full items-center justify-center md:hidden">
+            <Button
+              size="lg"
+              className="max-w-56"
+              onClick={() => {
+                const entries = DAY_LABELS.flatMap(({ key, label }) => {
+                  const shift = shifts[key]
+                  if (!shift || (!shift.startTime && !shift.endTime)) return []
+                  return [{ key, label, shift }]
+                })
+                downloadIcs(
+                  generateIcs(entries, { eventTitle, notesPrefix }),
+                  icsFilename(entries)
+                )
+              }}
+            >
+              In Kalender exportieren
+            </Button>
           </div>
         </div>
       )}
