@@ -97,7 +97,7 @@ export default function ShiftCard({
   const id = dayLabel ?? "shift"
 
   return (
-    <Card className="w-full min-w-0">
+    <Card className="">
       {/* ── Header: day · date · Σ ─────────────────────────────────── */}
       <CardHeader className="px-3 py-2">
         <div className="flex min-w-0 items-center gap-2">
@@ -144,6 +144,7 @@ export default function ShiftCard({
               value={startVal}
               onChange={(e) => setStartVal(e.target.value)}
               onBlur={commit}
+              type="time"
             />
           </div>
           <div className="self-center">-</div>
@@ -160,6 +161,7 @@ export default function ShiftCard({
               value={endVal}
               onChange={(e) => setEndVal(e.target.value)}
               onBlur={commit}
+              type="time"
             />
           </div>
         </div>

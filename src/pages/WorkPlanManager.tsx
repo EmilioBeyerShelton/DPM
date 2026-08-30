@@ -168,7 +168,7 @@ export default function WorkPlanManager() {
   }
 
   return (
-    <div className="relative flex min-h-svh flex-col justify-center gap-8 p-6">
+    <div className="relative flex min-h-svh flex-col items-center justify-center gap-8 p-6">
       {/* ── Settings gear ────────────────────────────────────────────── */}
       <Button
         size="icon-sm"
@@ -268,12 +268,13 @@ export default function WorkPlanManager() {
       )}
 
       {/* ── ICS event settings ──────────────────────────────────────── */}
-      <div className="flex flex-col items-center gap-4 rounded-xl border p-4">
+      <div className="flex w-fit flex-col items-center gap-4 rounded-xl border p-4">
         <Tooltip>
           <TooltipTrigger>
             <Field className="max-w-80">
               <FieldLabel htmlFor="main-title">Main Title</FieldLabel>
               <Input
+                disabled={pdfFile !== undefined}
                 id="main-title"
                 value={mainTitle}
                 onChange={(e) => setMainTitle(e.target.value)}
@@ -283,7 +284,7 @@ export default function WorkPlanManager() {
           <TooltipContent>
             <p>
               Vorbelegung für den Titel jeder Schicht — danach pro Karte
-              anpassbar
+              anpassbar - änderbar vor PDF uplaod
             </p>
           </TooltipContent>
         </Tooltip>
@@ -293,6 +294,7 @@ export default function WorkPlanManager() {
             <Field className="max-w-80">
               <FieldLabel htmlFor="title-separator">Title Separator</FieldLabel>
               <Input
+                disabled={pdfFile !== undefined}
                 id="title-separator"
                 value={titleSeparator}
                 onChange={(e) => setTitleSeparator(e.target.value)}
@@ -300,7 +302,10 @@ export default function WorkPlanManager() {
             </Field>
           </TooltipTrigger>
           <TooltipContent>
-            <p> Trennt den Titel von Notiz 2 im exportierten Ereignistitel</p>
+            <p>
+              Trennt den Titel von Notiz 2 im exportierten Ereignistitel -
+              änderbar vor PDF uplaod
+            </p>
           </TooltipContent>
         </Tooltip>
 
@@ -309,6 +314,7 @@ export default function WorkPlanManager() {
             <Field className="max-w-80">
               <FieldLabel htmlFor="note-prefix">Note Prefix</FieldLabel>
               <Input
+                disabled={pdfFile !== undefined}
                 id="note-prefix"
                 value={notePrefix}
                 onChange={(e) => setNotePrefix(e.target.value)}
@@ -316,9 +322,7 @@ export default function WorkPlanManager() {
             </Field>
           </TooltipTrigger>
           <TooltipContent>
-            <p>
-              Wird der Notiz jeder Schicht in der ICS-Beschreibung vorangestellt
-            </p>
+            <p>Wird der Notiz vorangestellt - änderbar vor PDF uplaod</p>
           </TooltipContent>
         </Tooltip>
       </div>
@@ -329,7 +333,7 @@ export default function WorkPlanManager() {
 
       {/* ── Shift cards ──────────────────────────────────────────────── */}
       {mappedEntry && (
-        <div className="flex flex-col justify-center gap-12">
+        <div className="flex flex-col items-center justify-center gap-12">
           <div className="flex w-full flex-col items-center justify-center gap-6">
             <Button
               size="lg"
@@ -354,7 +358,7 @@ export default function WorkPlanManager() {
           </div>
 
           {/* Desktop: wrapping week table, min 180 px per day */}
-          <div className="hidden [grid-template-columns:repeat(auto-fill,minmax(180px,1fr))] md:grid md:gap-2">
+          <div className="hidden flex-wrap md:flex md:gap-2">
             {DAY_LABELS.map(({ key, label }) => {
               const shift = shifts[key]
               const hasShift = shift && (shift.startTime || shift.endTime)
@@ -373,7 +377,9 @@ export default function WorkPlanManager() {
                       onChange={(updated) => updateShift(key, updated)}
                     />
                   ) : (
-                    <div className="grow rounded-xl border border-dashed" />
+                    <div className="flex w-5 grow items-center justify-center rounded-xl border border-dashed">
+                      <p className="rotate-90 text-gray-300">Frei</p>
+                    </div>
                   )}
                 </div>
               )
@@ -400,7 +406,9 @@ export default function WorkPlanManager() {
                       onChange={(updated) => updateShift(key, updated)}
                     />
                   ) : (
-                    <div className="h-6 rounded-lg border border-dashed" />
+                    <div className="flex h-6 justify-center rounded-lg border border-dashed">
+                      <p className="text-gray-300">Frei</p>
+                    </div>
                   )}
                 </div>
               )
