@@ -168,7 +168,7 @@ export default function WorkPlanManager() {
   }
 
   return (
-    <div className="relative flex min-h-svh flex-col items-center justify-center gap-8 p-6">
+    <div className="relative flex min-h-svh flex-col items-center justify-center gap-8 pt-4">
       {/* ── Settings gear ────────────────────────────────────────────── */}
       <Button
         size="icon-sm"
@@ -274,7 +274,7 @@ export default function WorkPlanManager() {
             <Field className="max-w-80">
               <FieldLabel htmlFor="main-title">Main Title</FieldLabel>
               <Input
-                disabled={pdfFile !== undefined}
+                disabled={pdfFile !== null}
                 id="main-title"
                 value={mainTitle}
                 onChange={(e) => setMainTitle(e.target.value)}
@@ -294,7 +294,7 @@ export default function WorkPlanManager() {
             <Field className="max-w-80">
               <FieldLabel htmlFor="title-separator">Title Separator</FieldLabel>
               <Input
-                disabled={pdfFile !== undefined}
+                disabled={pdfFile !== null}
                 id="title-separator"
                 value={titleSeparator}
                 onChange={(e) => setTitleSeparator(e.target.value)}
@@ -314,7 +314,7 @@ export default function WorkPlanManager() {
             <Field className="max-w-80">
               <FieldLabel htmlFor="note-prefix">Note Prefix</FieldLabel>
               <Input
-                disabled={pdfFile !== undefined}
+                disabled={pdfFile !== null}
                 id="note-prefix"
                 value={notePrefix}
                 onChange={(e) => setNotePrefix(e.target.value)}
@@ -333,7 +333,7 @@ export default function WorkPlanManager() {
 
       {/* ── Shift cards ──────────────────────────────────────────────── */}
       {mappedEntry && (
-        <div className="flex flex-col items-center justify-center gap-12">
+        <div className="flex w-full flex-col items-center justify-center gap-12">
           <div className="flex w-full flex-col items-center justify-center gap-6">
             <Button
               size="lg"
@@ -387,7 +387,7 @@ export default function WorkPlanManager() {
           </div>
 
           {/* Mobile: vertical stack with day labels */}
-          <div className="flex flex-col gap-2 md:hidden">
+          <div className="flex w-full flex-col gap-2 px-4 md:hidden">
             {DAY_LABELS.map(({ key, label }) => {
               const shift = shifts[key]
               const hasShift = shift && (shift.startTime || shift.endTime)
