@@ -28,6 +28,7 @@ const SUBBOX_TO_FIELD: Record<string, SubFieldKey> = {
   "end-time": "endTime",
   "time-sum": "timeSum",
   notes: "notes",
+  "notes-2": "notes2",
 }
 
 function contains(
@@ -47,8 +48,8 @@ function contains(
  * Two coordinate formats are supported:
  *
  * NEW FORMAT (no pdfWidth field):
- *   - Box and SubBox x/y are absolute PDF points, y measured from the bottom of the page.
- *   - Sub-boxes use absolute coordinates (not relative to parent).
+ *   - Box x/y are absolute PDF points, y measured from the bottom of the page.
+ *   - Sub-boxes are relative to their parent box's origin (bottom-left), same units.
  *   - Text nodes (pdfjs) also have y from bottom → direct comparison, no conversion.
  *
  * LEGACY FORMAT (pdfWidth present):
@@ -116,9 +117,11 @@ export function mapTextNodesToWorkPlan(
         const dayKey = AREA_TO_DAY[area.id]
         if (!dayKey || !area.subBoxes?.length) break
 
-        // Sub-boxes are absolute → compare directly
+        // Sub-boxes are relative to the parent's origin → offset first
+        const relX = node.x - area.x
+        const relY = node.y - area.y
         for (const sub of area.subBoxes) {
-          if (!contains(node.x, node.y, sub.x, sub.y, sub.w, sub.h)) continue
+          if (!contains(relX, relY, sub.x, sub.y, sub.w, sub.h)) continue
           const field = SUBBOX_TO_FIELD[sub.id]
           if (field) collect(`${dayKey}.${field}`, node.str)
           break
@@ -146,6 +149,7 @@ export function mapTextNodesToWorkPlan(
       endTime: joined(`${day}.endTime`),
       timeSum: joined(`${day}.timeSum`),
       notes: joined(`${day}.notes`),
+      notes2: joined(`${day}.notes2`),
     }
     if (Object.values(entry).some((v) => v !== undefined)) {
       result.schedule[day] = entry

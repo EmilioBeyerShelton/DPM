@@ -20,6 +20,11 @@ import {
 } from "@/components/ui/dialog"
 import ShiftCard from "@/components/ShiftCard"
 import { generateIcs, downloadIcs, icsFilename } from "@/lib/icsExport"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   "pdfjs-dist/build/pdf.worker.min.mjs",
@@ -48,12 +53,20 @@ const DAY_LABELS: Array<{ key: DayKey; label: string }> = [
 ]
 
 function entryToShifts(
-  entry: WorkPlanEntry
+  entry: WorkPlanEntry,
+  mainTitle: string,
+  titleSeparator: string
 ): Partial<Record<DayKey, ShiftDTO>> {
   const result: Partial<Record<DayKey, ShiftDTO>> = {}
   for (const { key } of DAY_LABELS) {
     const dayEntry = entry.schedule[key]
-    if (dayEntry) result[key] = dayEntryToShiftDTO(dayEntry)
+    if (dayEntry) {
+      const dto = dayEntryToShiftDTO(dayEntry)
+      const title = dto.notes2
+        ? `${mainTitle}${titleSeparator}${dto.notes2}`
+        : mainTitle
+      result[key] = { ...dto, title }
+    }
   }
   return result
 }
@@ -69,15 +82,16 @@ export default function WorkPlanManager() {
   const [loadCount, setLoadCount] = useState(0)
   const [pdfDialogOpen, setPdfDialogOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
-  const [eventTitle, setEventTitle] = useState("Arbeiten Flora")
-  const [notesPrefix, setNotesPrefix] = useState("shows: ")
+  const [mainTitle, setMainTitle] = useState("Arbeiten Flora")
+  const [titleSeparator, setTitleSeparator] = useState(" - ")
+  const [notePrefix, setNotePrefix] = useState("shows: ")
 
   const pdfInputRef = useRef<HTMLInputElement>(null)
   const areasInputRef = useRef<HTMLInputElement>(null)
 
   function applyEntry(entry: WorkPlanEntry) {
     setMappedEntry(entry)
-    setShifts(entryToShifts(entry))
+    setShifts(entryToShifts(entry, mainTitle, titleSeparator))
     setLoadCount((c) => c + 1)
   }
 
@@ -253,6 +267,62 @@ export default function WorkPlanManager() {
         </div>
       )}
 
+      {/* ── ICS event settings ──────────────────────────────────────── */}
+      <div className="flex flex-col items-center gap-4 rounded-xl border p-4">
+        <Tooltip>
+          <TooltipTrigger>
+            <Field className="max-w-80">
+              <FieldLabel htmlFor="main-title">Main Title</FieldLabel>
+              <Input
+                id="main-title"
+                value={mainTitle}
+                onChange={(e) => setMainTitle(e.target.value)}
+              />
+            </Field>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>
+              Vorbelegung für den Titel jeder Schicht — danach pro Karte
+              anpassbar
+            </p>
+          </TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger>
+            <Field className="max-w-80">
+              <FieldLabel htmlFor="title-separator">Title Separator</FieldLabel>
+              <Input
+                id="title-separator"
+                value={titleSeparator}
+                onChange={(e) => setTitleSeparator(e.target.value)}
+              />
+            </Field>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p> Trennt den Titel von Notiz 2 im exportierten Ereignistitel</p>
+          </TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger>
+            <Field className="max-w-80">
+              <FieldLabel htmlFor="note-prefix">Note Prefix</FieldLabel>
+              <Input
+                id="note-prefix"
+                value={notePrefix}
+                onChange={(e) => setNotePrefix(e.target.value)}
+              />
+            </Field>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>
+              Wird der Notiz jeder Schicht in der ICS-Beschreibung vorangestellt
+            </p>
+          </TooltipContent>
+        </Tooltip>
+      </div>
+
       {isExtracting && (
         <p className="text-sm text-muted-foreground">Extracting text…</p>
       )}
@@ -261,24 +331,6 @@ export default function WorkPlanManager() {
       {mappedEntry && (
         <div className="flex flex-col justify-center gap-12">
           <div className="flex w-full flex-col items-center justify-center gap-6">
-            <Field className="max-w-80">
-              <FieldLabel htmlFor="event-title">Ereignistitel</FieldLabel>
-              <Input
-                id="event-title"
-                value={eventTitle}
-                onChange={(e) => setEventTitle(e.target.value)}
-              />
-            </Field>
-
-            <Field className="max-w-80">
-              <FieldLabel htmlFor="notes-prefix">Notizen-Präfix</FieldLabel>
-              <Input
-                id="notes-prefix"
-                value={notesPrefix}
-                onChange={(e) => setNotesPrefix(e.target.value)}
-              />
-            </Field>
-
             <Button
               size="lg"
               className="max-w-56"
@@ -289,7 +341,10 @@ export default function WorkPlanManager() {
                   return [{ key, label, shift }]
                 })
                 downloadIcs(
-                  generateIcs(entries, { eventTitle, notesPrefix }),
+                  generateIcs(entries, {
+                    eventTitle: mainTitle,
+                    notePrefix,
+                  }),
                   icsFilename(entries)
                 )
               }}
@@ -362,7 +417,10 @@ export default function WorkPlanManager() {
                   return [{ key, label, shift }]
                 })
                 downloadIcs(
-                  generateIcs(entries, { eventTitle, notesPrefix }),
+                  generateIcs(entries, {
+                    eventTitle: mainTitle,
+                    notePrefix,
+                  }),
                   icsFilename(entries)
                 )
               }}

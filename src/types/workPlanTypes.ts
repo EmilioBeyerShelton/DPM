@@ -4,6 +4,7 @@ export interface DayEntry {
   endTime?: string
   timeSum?: string
   notes?: string
+  notes2?: string
 }
 
 export interface ShiftDTO {
@@ -11,7 +12,11 @@ export interface ShiftDTO {
   startTime?: Date
   endTime?: Date
   timeSum?: number
+  /** ICS event title (VEVENT SUMMARY). */
+  title?: string
+  /** ICS event description (VEVENT DESCRIPTION). */
   notes?: string
+  notes2?: string
 }
 
 export interface WorkPlanEntry {
@@ -24,9 +29,13 @@ export interface WorkPlanEntry {
 
 export interface SubArea {
   id: string
-  /** X offset relative to parent area, in PDF points */
+  /** X offset relative to the parent area's origin */
   x: number
-  /** Y offset relative to parent area, in PDF points (y=0 at top) */
+  /**
+   * Y offset relative to the parent area's origin, in the same
+   * up/down convention as the parent (y from top for legacy canvas-pixel
+   * configs, y from bottom for PDF-point configs).
+   */
   y: number
   w: number
   h: number
