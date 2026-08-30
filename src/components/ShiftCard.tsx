@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+
 import { Label } from "@/components/ui/label"
 import type { ShiftDTO } from "@/types/workPlanTypes"
 
@@ -19,13 +20,23 @@ function toDateInput(d: Date | undefined): string {
   return `${y}-${m}-${day}`
 }
 
-function toTimeInput(d: Date | undefined): string {
+function toInput(d: Date | undefined): string {
   if (!d) return ""
   return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`
 }
 
 function toSumInput(n: number | undefined): string {
   return n != null ? String(n).replace(".", ",") : ""
+}
+
+/** Actual shift duration in hours, derived from the Von/Bis inputs (overnight-safe). */
+function diffHours(startStr: string, endStr: string): number | undefined {
+  if (!startStr || !endStr) return undefined
+  const [sh, sm] = startStr.split(":").map(Number)
+  const [eh, em] = endStr.split(":").map(Number)
+  let minutes = eh * 60 + em - (sh * 60 + sm)
+  if (minutes <= 0) minutes += 24 * 60
+  return Math.round((minutes / 60) * 100) / 100
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -37,12 +48,16 @@ export default function ShiftCard({
   startTime,
   endTime,
   timeSum,
+  title,
   notes,
+  notes2,
 }: ShiftCardProps) {
   const [dateVal, setDateVal] = useState(toDateInput(date))
-  const [startVal, setStartVal] = useState(toTimeInput(startTime))
-  const [endVal, setEndVal] = useState(toTimeInput(endTime))
+  const [startVal, setStartVal] = useState(toInput(startTime))
+  const [endVal, setEndVal] = useState(toInput(endTime))
   const sumVal = toSumInput(timeSum)
+  const actualVal = toSumInput(diffHours(startVal, endVal))
+  const [titleVal, setTitleVal] = useState(title ?? "")
   const [notesVal, setNotesVal] = useState(notes ?? "")
 
   function buildDTO(): ShiftDTO {
@@ -71,7 +86,10 @@ export default function ShiftCard({
       startTime: parsedStart,
       endTime: parsedEnd,
       timeSum: isNaN(rawSum) ? undefined : rawSum,
+      title: titleVal.trim() || undefined,
       notes: notesVal.trim() || undefined,
+      // notes2 is not user-editable here — pass the extracted value through unchanged.
+      notes2,
     }
   }
 
@@ -79,7 +97,7 @@ export default function ShiftCard({
   const id = dayLabel ?? "shift"
 
   return (
-    <Card className="w-full min-w-0">
+    <Card className="">
       {/* ── Header: day · date · Σ ─────────────────────────────────── */}
       <CardHeader className="px-3 py-2">
         <div className="flex min-w-0 items-center gap-2">
@@ -92,9 +110,26 @@ export default function ShiftCard({
             className=""
           />
         </div>
+        <div className="mb-2 grid gap-0.5">
+          <Label
+            htmlFor={`${id}-title`}
+            className="text-xs font-normal text-muted-foreground"
+          >
+            Titel
+          </Label>
+          <Input
+            id={`${id}-title`}
+            type="text"
+            value={titleVal}
+            onChange={(e) => setTitleVal(e.target.value)}
+            onBlur={commit}
+            placeholder="Ereignistitel"
+            className="w-full"
+          />
+        </div>
       </CardHeader>
 
-      {/* ── Content: Von / Bis / Notizen ───────────────────────────── */}
+      {/* ── Content: Titel / Von / Bis / Notizen ───────────────────── */}
       <CardContent className="overflow-x-hidden px-3 pt-0 pb-3">
         <div className="flex w-full flex-row justify-evenly gap-2">
           <div className="grid gap-0.5">
@@ -106,11 +141,10 @@ export default function ShiftCard({
             </Label>
             <Input
               id={`${id}-start`}
-              type="time"
               value={startVal}
               onChange={(e) => setStartVal(e.target.value)}
               onBlur={commit}
-              className=""
+              type="time"
             />
           </div>
           <div className="self-center">-</div>
@@ -124,11 +158,10 @@ export default function ShiftCard({
             </Label>
             <Input
               id={`${id}-end`}
-              type="time"
               value={endVal}
               onChange={(e) => setEndVal(e.target.value)}
               onBlur={commit}
-              className=""
+              type="time"
             />
           </div>
         </div>
@@ -149,8 +182,9 @@ export default function ShiftCard({
             className="w-full"
           />
         </div>
-        <div className="-mb-2 flex items-center justify-center pt-2">
-          <div className="text-gray-300">{sumVal} h</div>
+        <div className="-mb-2 flex items-center justify-center gap-4 pt-2 text-xs">
+          <div className="text-gray-300">Soll: {sumVal} h</div>
+          <div className="text-gray-300">Ist: {actualVal} h</div>
         </div>
       </CardContent>
     </Card>

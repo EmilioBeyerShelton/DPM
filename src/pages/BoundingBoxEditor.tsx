@@ -43,6 +43,7 @@ const SUB_FIELD_LABELS = [
   "end-time",
   "time-sum",
   "notes",
+  "notes-2",
 ] as const
 type SubFieldLabel = (typeof SUB_FIELD_LABELS)[number]
 
@@ -54,8 +55,8 @@ type SubFieldLabel = (typeof SUB_FIELD_LABELS)[number]
  *   y – from bottom edge of page  (matches pdfjs transform[5])
  *   w, h – width / height in points
  *
- * SubBox coordinates are absolute (same space as the parent Box),
- * not relative to the parent.
+ * SubBox coordinates are relative to the parent Box's origin
+ * (bottom-left corner), using the same units as the parent.
  */
 interface SubBox {
   id: SubFieldLabel
@@ -115,6 +116,7 @@ const SUB_COLORS: Record<SubFieldLabel, { bg: string; border: string }> = {
   "end-time": { bg: "rgba(251,146,60,0.20)", border: "rgb(251,146,60)" },
   "time-sum": { bg: "rgba(168,85,247,0.20)", border: "rgb(168,85,247)" },
   notes: { bg: "rgba(75,85,99,0.20)", border: "rgb(75,85,99)" },
+  "notes-2": { bg: "rgba(217,70,239,0.20)", border: "rgb(217,70,239)" },
 }
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -126,22 +128,17 @@ const DEFAULT_PAGE_H = 595.28
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 /**
- * Default sub-boxes for a day column, placed in the same PDF coordinate space.
- * Strips run top-to-bottom visually (high-y to low-y in PDF coords).
+ * Default sub-boxes for a day column, relative to the parent box's origin.
+ * Strips run top-to-bottom visually (high-y to low-y within the parent).
  */
-function defaultSubBoxes(
-  px: number,
-  py: number,
-  pw: number,
-  ph: number,
-): SubBox[] {
+function defaultSubBoxes(pw: number, ph: number): SubBox[] {
   const count = SUB_FIELD_LABELS.length
   const stripH = ph / count
   return SUB_FIELD_LABELS.map((id, i) => ({
     id,
-    x: px,
-    // i=0 → top strip (highest y in PDF); i=count-1 → bottom strip (lowest y)
-    y: py + ph - (i + 1) * stripH,
+    x: 0,
+    // i=0 → top strip (highest y within parent); i=count-1 → bottom strip (lowest y)
+    y: ph - (i + 1) * stripH,
     w: pw,
     h: stripH,
   }))
@@ -167,19 +164,19 @@ function defaultBoxes(pageW: number, pageH: number): Box[] {
         y: yBottom,
         w: dayW - 2,
         h,
-        subBoxes: defaultSubBoxes(x, yBottom, dayW - 2, h),
+        subBoxes: defaultSubBoxes(dayW - 2, h),
       }
     }),
     { id: "Notes", x: pageW - notesW - gap, y: yBottom, w: notesW, h },
   ]
 }
 
-/** Clamp sub-box so it stays within its parent box (absolute PDF coords). */
+/** Clamp sub-box so it stays within its parent box (parent-relative coords). */
 function clampSub(sub: SubBox, parent: Box): SubBox {
-  const x = Math.max(parent.x, Math.min(sub.x, parent.x + parent.w - MIN_PT))
-  const w = Math.max(MIN_PT, Math.min(sub.w, parent.x + parent.w - x))
-  const y = Math.max(parent.y, Math.min(sub.y, parent.y + parent.h - MIN_PT))
-  const h = Math.max(MIN_PT, Math.min(sub.h, parent.y + parent.h - y))
+  const x = Math.max(0, Math.min(sub.x, parent.w - MIN_PT))
+  const w = Math.max(MIN_PT, Math.min(sub.w, parent.w - x))
+  const y = Math.max(0, Math.min(sub.y, parent.h - MIN_PT))
+  const h = Math.max(MIN_PT, Math.min(sub.h, parent.h - y))
   return { ...sub, x, y, w, h }
 }
 
@@ -811,9 +808,9 @@ export default function BoundingBoxEditor() {
                     box.subBoxes?.map((sub) => {
                       const sc = SUB_COLORS[sub.id]
                       const isSubSel = selectedSub === sub.id
-                      // Convert absolute sub coords to position relative to parent div
-                      const subLeft = (sub.x - box.x) * fullScale
-                      const subTop = ((box.y + box.h) - (sub.y + sub.h)) * fullScale
+                      // Sub coords are already relative to the parent div's origin
+                      const subLeft = sub.x * fullScale
+                      const subTop = (box.h - (sub.y + sub.h)) * fullScale
                       const subW = sub.w * fullScale
                       const subH = sub.h * fullScale
                       return (

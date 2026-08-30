@@ -40,21 +40,20 @@ export function icsFilename(entries: ShiftExportEntry[]): string {
 }
 
 export interface IcsConfig {
+  /** Fallback SUMMARY used for shifts without their own title. */
   eventTitle?: string
-  notesPrefix?: string
+  /** Prefixed to the notes field to form DESCRIPTION. */
+  notePrefix?: string
 }
 
 export function generateIcs(entries: ShiftExportEntry[], config: IcsConfig = {}): string {
-  const { eventTitle = "Arbeiten Flora", notesPrefix = "" } = config
+  const { eventTitle = "Arbeiten Flora", notePrefix = "" } = config
   const dtstamp = fmtUtc(new Date())
 
   const events = entries
     .filter((e) => e.shift.startTime && e.shift.endTime)
     .map(({ key, shift }) => {
       const uid = `${key}-${fmtLocal(shift.startTime!)}-${Date.now()}@arbeitsplan`
-      const descParts: string[] = []
-      if (shift.timeSum != null) descParts.push(`Gesamt: ${shift.timeSum}h`)
-      if (shift.notes) descParts.push(`${notesPrefix}${shift.notes}`)
 
       const lines = [
         "BEGIN:VEVENT",
@@ -62,9 +61,9 @@ export function generateIcs(entries: ShiftExportEntry[], config: IcsConfig = {})
         `DTSTAMP:${dtstamp}`,
         `DTSTART:${fmtLocal(shift.startTime!)}`,
         `DTEND:${fmtLocal(shift.endTime!)}`,
-        `SUMMARY:${eventTitle}`,
+        `SUMMARY:${shift.title || eventTitle}`,
       ]
-      if (descParts.length) lines.push(`DESCRIPTION:${descParts.join("\\n")}`)
+      if (shift.notes) lines.push(`DESCRIPTION:${notePrefix}${shift.notes}`)
       lines.push("END:VEVENT")
       return lines.join("\r\n")
     })

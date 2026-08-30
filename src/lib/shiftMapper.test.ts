@@ -65,12 +65,14 @@ describe("dayEntryToShiftDTO", () => {
       endTime: "16:30",
       timeSum: "8,5",
       notes: "Nachtschicht",
+      notes2: "Backstage",
     })
     expect(dto.date).toEqual(new Date(2024, 11, 30))
     expect(dto.startTime).toEqual(new Date(2024, 11, 30, 8, 0))
     expect(dto.endTime).toEqual(new Date(2024, 11, 30, 16, 30))
     expect(dto.timeSum).toBe(8.5)
     expect(dto.notes).toBe("Nachtschicht")
+    expect(dto.notes2).toBe("Backstage")
   })
 
   it("adds one day to endTime when shift crosses midnight", () => {
@@ -89,10 +91,16 @@ describe("dayEntryToShiftDTO", () => {
     expect(dto.endTime).toBeUndefined()
     expect(dto.timeSum).toBeUndefined()
     expect(dto.notes).toBeUndefined()
+    expect(dto.notes2).toBeUndefined()
   })
 
   it("passes notes through unchanged", () => {
     const dto = dayEntryToShiftDTO({ notes: "Urlaub" })
     expect(dto.notes).toBe("Urlaub")
+  })
+
+  it("passes notes2 through unchanged", () => {
+    const dto = dayEntryToShiftDTO({ notes2: "Bühne 2" })
+    expect(dto.notes2).toBe("Bühne 2")
   })
 })

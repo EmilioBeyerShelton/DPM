@@ -67,7 +67,7 @@ export function parseTimeSum(str: string): number | undefined {
  * - startTime / endTime: full Date objects combining the parsed date with
  *   the clock time. If endTime ≤ startTime, one day is added (overnight shift).
  * - timeSum: decimal hours parsed from German comma-decimal notation.
- * - notes: passed through unchanged.
+ * - notes / notes2: passed through unchanged.
  */
 export function dayEntryToShiftDTO(entry: DayEntry): ShiftDTO {
   const date = entry.date ? parseDate(entry.date) : undefined
@@ -88,5 +88,6 @@ export function dayEntryToShiftDTO(entry: DayEntry): ShiftDTO {
     endTime,
     timeSum: entry.timeSum ? parseTimeSum(entry.timeSum) : undefined,
     notes: entry.notes,
+    notes2: entry.notes2,
   }
 }
