@@ -123,16 +123,20 @@ export default function PdfSectionPreviewDialog({
             ref={destCanvasRef}
             className="max-h-[32vh] w-auto max-w-full rounded shadow-sm md:max-h-[60vh]"
           />
-          <div className="w-full max-w-xs">
-            {hasShift ? (
+          {/* The invisible ShiftCard reserves exactly the footprint the real card
+              would take, so switching to "Frei" never resizes the dialog and
+              shifts the nav buttons under the user's cursor/finger. */}
+          <div className="relative w-full max-w-xs">
+            <div className={hasShift ? undefined : "invisible"}>
               <ShiftCard
                 key={day.key}
                 dayLabel={day.label}
                 {...dayShift}
                 onChange={(updated) => onShiftChange(day.key, updated)}
               />
-            ) : (
-              <div className="flex h-24 items-center justify-center rounded-xl border border-dashed">
+            </div>
+            {!hasShift && (
+              <div className="absolute inset-0 flex items-center justify-center rounded-xl border border-dashed">
                 <p className="text-gray-300">Frei</p>
               </div>
             )}
