@@ -45,15 +45,18 @@ export default function PdfSectionPreviewDialog({
     sourceCanvasRef.current = c
   }, [])
 
-  useEffect(() => {
+  // Reset navigation to the clicked day on every closed→open transition, without
+  // syncing state from an effect (https://react.dev/learn/you-might-not-need-an-effect).
+  // The hidden <Page> below unmounts while closed, which nulls sourceCanvasRef via
+  // setSourceCanvas — stale nativeSize/sourceReady are harmless since the draw
+  // effect bails out once the source canvas is gone.
+  const [wasOpen, setWasOpen] = useState(open)
+  if (open !== wasOpen) {
+    setWasOpen(open)
     if (open) {
       setDayIndex(Math.max(0, DAY_LABELS.findIndex((d) => d.key === initialDay)))
-    } else {
-      setNativeSize(null)
-      setSourceReady(0)
-      sourceCanvasRef.current = null
     }
-  }, [open, initialDay])
+  }
 
   useEffect(() => {
     const source = sourceCanvasRef.current
