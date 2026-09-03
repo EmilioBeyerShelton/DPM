@@ -3,7 +3,6 @@ import { pdfjs } from "react-pdf"
 import type { TextItem } from "pdfjs-dist/types/src/display/api"
 import { Settings2Icon, UploadIcon } from "lucide-react"
 import PdfThumbnail from "@/components/PdfThumbnail"
-import PdfViewerDialog from "@/components/PdfViewerDialog"
 import PdfSectionPreviewDialog from "@/components/PdfSectionPreviewDialog"
 import defaultAreas from "@/config/defaultAreas"
 import { DAY_LABELS, type DayKey } from "@/config/dayLabels"
@@ -70,7 +69,6 @@ export default function WorkPlanManager() {
   const [shifts, setShifts] = useState<Partial<Record<DayKey, ShiftDTO>>>({})
   const [pageHeight, setPageHeight] = useState(0)
   const [loadCount, setLoadCount] = useState(0)
-  const [pdfDialogOpen, setPdfDialogOpen] = useState(false)
   const [previewDay, setPreviewDay] = useState<DayKey | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [mainTitle, setMainTitle] = useState("Arbeiten Flora")
@@ -252,13 +250,9 @@ export default function WorkPlanManager() {
         </div>
       ) : (
         <div className="flex flex-col items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setPdfDialogOpen(true)}
-            className="w-fit cursor-zoom-in overflow-hidden rounded border shadow-sm transition-opacity hover:opacity-80"
-          >
-            <PdfThumbnail file={pdfFile} width={320} />
-          </button>
+          <div className="w-fit overflow-hidden rounded border shadow-sm">
+            <PdfThumbnail file={pdfFile} width={120} />
+          </div>
           <div className="flex items-center gap-2">
             <p className="text-xs text-muted-foreground">{pdfFile.name}</p>
             <Button
@@ -269,12 +263,6 @@ export default function WorkPlanManager() {
               Ändern
             </Button>
           </div>
-
-          <PdfViewerDialog
-            file={pdfFile}
-            open={pdfDialogOpen}
-            onOpenChange={setPdfDialogOpen}
-          />
 
           <PdfSectionPreviewDialog
             file={pdfFile}
@@ -355,7 +343,7 @@ export default function WorkPlanManager() {
 
       {/* ── Shift cards ──────────────────────────────────────────────── */}
       {mappedEntry && (
-        <div className="flex w-full flex-col items-center justify-center gap-12">
+        <div className="flex w-full flex-col items-center justify-center gap-12 pb-4">
           <Button size="lg" className="max-w-72" onClick={reviewFromFirstEntry}>
             Prüfen und zum Kalender
           </Button>
@@ -418,6 +406,15 @@ export default function WorkPlanManager() {
                 </div>
               )
             })}
+            <div className="mt-4 flex w-full flex-col items-center justify-center">
+              <Button
+                size="lg"
+                className="max-w-72"
+                onClick={reviewFromFirstEntry}
+              >
+                Prüfen und zum Kalender
+              </Button>
+            </div>
           </div>
         </div>
       )}
