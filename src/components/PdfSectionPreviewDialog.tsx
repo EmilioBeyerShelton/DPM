@@ -8,9 +8,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
+import ShiftCard from "@/components/ShiftCard"
 import { getAreaCropRect } from "@/lib/pdfAreaCrop"
 import { DAY_LABELS, type DayKey } from "@/config/dayLabels"
-import type { AreaConfig } from "@/types/workPlanTypes"
+import type { AreaConfig, ShiftDTO } from "@/types/workPlanTypes"
 
 interface Props {
   file: File
@@ -18,6 +19,8 @@ interface Props {
   open: boolean
   onOpenChange: (open: boolean) => void
   initialDay: DayKey
+  shifts: Partial<Record<DayKey, ShiftDTO>>
+  onShiftChange: (key: DayKey, updated: ShiftDTO) => void
 }
 
 // Rendered once off-screen at high resolution so every crop stays sharp when zoomed.
@@ -29,6 +32,8 @@ export default function PdfSectionPreviewDialog({
   open,
   onOpenChange,
   initialDay,
+  shifts,
+  onShiftChange,
 }: Props) {
   const [dayIndex, setDayIndex] = useState(() =>
     Math.max(0, DAY_LABELS.findIndex((d) => d.key === initialDay))
@@ -109,8 +114,19 @@ export default function PdfSectionPreviewDialog({
           </DialogClose>
         </div>
 
-        <div className="flex flex-1 items-center justify-center overflow-auto bg-muted/30 p-4">
-          <canvas ref={destCanvasRef} className="max-w-full rounded shadow-sm" />
+        <div className="flex flex-1 flex-col items-center gap-4 overflow-auto bg-muted/30 p-4">
+          <canvas
+            ref={destCanvasRef}
+            className="max-h-[32vh] w-auto max-w-full rounded shadow-sm md:max-h-[60vh]"
+          />
+          <div className="w-full max-w-xs">
+            <ShiftCard
+              key={day.key}
+              dayLabel={day.label}
+              {...shifts[day.key]}
+              onChange={(updated) => onShiftChange(day.key, updated)}
+            />
+          </div>
         </div>
 
         <div className="flex shrink-0 items-center justify-center gap-6 border-t px-4 py-3">

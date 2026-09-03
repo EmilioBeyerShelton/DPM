@@ -248,6 +248,8 @@ export default function WorkPlanManager() {
             open={previewDay !== null}
             onOpenChange={(o) => !o && setPreviewDay(null)}
             initialDay={previewDay ?? "mon"}
+            shifts={shifts}
+            onShiftChange={updateShift}
           />
         </div>
       )}
