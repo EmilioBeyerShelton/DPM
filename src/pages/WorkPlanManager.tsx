@@ -90,6 +90,26 @@ export default function WorkPlanManager() {
     setShifts((prev) => ({ ...prev, [key]: updated }))
   }
 
+  function reviewFromFirstEntry() {
+    const firstDay = DAY_LABELS.find(({ key }) => {
+      const shift = shifts[key]
+      return shift && (shift.startTime || shift.endTime)
+    })
+    setPreviewDay(firstDay?.key ?? DAY_LABELS[0].key)
+  }
+
+  function exportIcs() {
+    const entries = DAY_LABELS.flatMap(({ key, label }) => {
+      const shift = shifts[key]
+      if (!shift || (!shift.startTime && !shift.endTime)) return []
+      return [{ key, label, shift }]
+    })
+    downloadIcs(
+      generateIcs(entries, { eventTitle: mainTitle, notePrefix }),
+      icsFilename(entries)
+    )
+  }
+
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file || file.type !== "application/pdf") return
@@ -264,6 +284,7 @@ export default function WorkPlanManager() {
             initialDay={previewDay ?? "mon"}
             shifts={shifts}
             onShiftChange={updateShift}
+            onExport={exportIcs}
           />
         </div>
       )}
@@ -335,31 +356,12 @@ export default function WorkPlanManager() {
       {/* ── Shift cards ──────────────────────────────────────────────── */}
       {mappedEntry && (
         <div className="flex w-full flex-col items-center justify-center gap-12">
-          <div className="flex w-full flex-col items-center justify-center gap-6">
-            <Button
-              size="lg"
-              className="max-w-56"
-              onClick={() => {
-                const entries = DAY_LABELS.flatMap(({ key, label }) => {
-                  const shift = shifts[key]
-                  if (!shift || (!shift.startTime && !shift.endTime)) return []
-                  return [{ key, label, shift }]
-                })
-                downloadIcs(
-                  generateIcs(entries, {
-                    eventTitle: mainTitle,
-                    notePrefix,
-                  }),
-                  icsFilename(entries)
-                )
-              }}
-            >
-              In Kalender exportieren
-            </Button>
-          </div>
+          <Button size="lg" className="max-w-72" onClick={reviewFromFirstEntry}>
+            Prüfen und zum Kalender
+          </Button>
 
           {/* Desktop: wrapping week table, min 180 px per day */}
-          <div className="hidden flex-wrap md:flex md:gap-2">
+          <div className="hidden flex-wrap justify-center md:flex md:gap-2">
             {DAY_LABELS.map(({ key, label }) => {
               const shift = shifts[key]
               const hasShift = shift && (shift.startTime || shift.endTime)
@@ -416,28 +418,6 @@ export default function WorkPlanManager() {
                 </div>
               )
             })}
-          </div>
-          <div className="flex w-full items-center justify-center md:hidden">
-            <Button
-              size="lg"
-              className="max-w-56"
-              onClick={() => {
-                const entries = DAY_LABELS.flatMap(({ key, label }) => {
-                  const shift = shifts[key]
-                  if (!shift || (!shift.startTime && !shift.endTime)) return []
-                  return [{ key, label, shift }]
-                })
-                downloadIcs(
-                  generateIcs(entries, {
-                    eventTitle: mainTitle,
-                    notePrefix,
-                  }),
-                  icsFilename(entries)
-                )
-              }}
-            >
-              In Kalender exportieren
-            </Button>
           </div>
         </div>
       )}

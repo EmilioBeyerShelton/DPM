@@ -21,6 +21,7 @@ interface Props {
   initialDay: DayKey
   shifts: Partial<Record<DayKey, ShiftDTO>>
   onShiftChange: (key: DayKey, updated: ShiftDTO) => void
+  onExport: () => void
 }
 
 // Rendered once off-screen at high resolution so every crop stays sharp when zoomed.
@@ -34,6 +35,7 @@ export default function PdfSectionPreviewDialog({
   initialDay,
   shifts,
   onShiftChange,
+  onExport,
 }: Props) {
   const [dayIndex, setDayIndex] = useState(() =>
     Math.max(0, DAY_LABELS.findIndex((d) => d.key === initialDay))
@@ -90,9 +92,11 @@ export default function PdfSectionPreviewDialog({
   }, [dayIndex, nativeSize, sourceReady, areaConfig])
 
   const day = DAY_LABELS[dayIndex]
+  const dayShift = shifts[day.key]
+  const hasShift = dayShift && (dayShift.startTime || dayShift.endTime)
 
   function goTo(delta: number) {
-    setDayIndex((i) => (i + delta + DAY_LABELS.length) % DAY_LABELS.length)
+    setDayIndex((i) => Math.min(DAY_LABELS.length - 1, Math.max(0, i + delta)))
   }
 
   return (
@@ -120,12 +124,18 @@ export default function PdfSectionPreviewDialog({
             className="max-h-[32vh] w-auto max-w-full rounded shadow-sm md:max-h-[60vh]"
           />
           <div className="w-full max-w-xs">
-            <ShiftCard
-              key={day.key}
-              dayLabel={day.label}
-              {...shifts[day.key]}
-              onChange={(updated) => onShiftChange(day.key, updated)}
-            />
+            {hasShift ? (
+              <ShiftCard
+                key={day.key}
+                dayLabel={day.label}
+                {...dayShift}
+                onChange={(updated) => onShiftChange(day.key, updated)}
+              />
+            ) : (
+              <div className="flex h-24 items-center justify-center rounded-xl border border-dashed">
+                <p className="text-gray-300">Frei</p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -134,17 +144,19 @@ export default function PdfSectionPreviewDialog({
             size="icon"
             variant="outline"
             onClick={() => goTo(-1)}
+            disabled={dayIndex <= 0}
             aria-label="Vorheriger Abschnitt"
           >
             <ChevronLeftIcon />
           </Button>
-          <span className="w-8 text-center text-xs text-muted-foreground">
-            {day.label}
-          </span>
+          <Button size="sm" onClick={onExport}>
+            In Kalender exportieren
+          </Button>
           <Button
             size="icon"
             variant="outline"
             onClick={() => goTo(1)}
+            disabled={dayIndex >= DAY_LABELS.length - 1}
             aria-label="Nächster Abschnitt"
           >
             <ChevronRightIcon />
