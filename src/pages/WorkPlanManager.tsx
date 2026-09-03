@@ -4,7 +4,9 @@ import type { TextItem } from "pdfjs-dist/types/src/display/api"
 import { Settings2Icon, UploadIcon } from "lucide-react"
 import PdfThumbnail from "@/components/PdfThumbnail"
 import PdfViewerDialog from "@/components/PdfViewerDialog"
+import PdfSectionPreviewDialog from "@/components/PdfSectionPreviewDialog"
 import defaultAreas from "@/config/defaultAreas"
+import { DAY_LABELS, type DayKey } from "@/config/dayLabels"
 import { mapTextNodesToWorkPlan } from "@/lib/workPlanMapper"
 import { dayEntryToShiftDTO } from "@/lib/shiftMapper"
 import type { AreaConfig, ShiftDTO, WorkPlanEntry } from "@/types/workPlanTypes"
@@ -35,18 +37,6 @@ interface TextNode {
   height: number
 }
 
-type DayKey = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun"
-
-const DAY_LABELS: Array<{ key: DayKey; label: string }> = [
-  { key: "mon", label: "Mo" },
-  { key: "tue", label: "Di" },
-  { key: "wed", label: "Mi" },
-  { key: "thu", label: "Do" },
-  { key: "fri", label: "Fr" },
-  { key: "sat", label: "Sa" },
-  { key: "sun", label: "So" },
-]
-
 function entryToShifts(
   entry: WorkPlanEntry
 ): Partial<Record<DayKey, ShiftDTO>> {
@@ -68,6 +58,7 @@ export default function WorkPlanManager() {
   const [pageHeight, setPageHeight] = useState(0)
   const [loadCount, setLoadCount] = useState(0)
   const [pdfDialogOpen, setPdfDialogOpen] = useState(false)
+  const [previewDay, setPreviewDay] = useState<DayKey | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [eventTitle, setEventTitle] = useState("Arbeiten Flora")
   const [notesPrefix, setNotesPrefix] = useState("shows: ")
@@ -250,6 +241,14 @@ export default function WorkPlanManager() {
             open={pdfDialogOpen}
             onOpenChange={setPdfDialogOpen}
           />
+
+          <PdfSectionPreviewDialog
+            file={pdfFile}
+            areaConfig={areaConfig}
+            open={previewDay !== null}
+            onOpenChange={(o) => !o && setPreviewDay(null)}
+            initialDay={previewDay ?? "mon"}
+          />
         </div>
       )}
 
@@ -316,6 +315,7 @@ export default function WorkPlanManager() {
                       dayLabel={label}
                       {...shift}
                       onChange={(updated) => updateShift(key, updated)}
+                      onPreview={() => setPreviewDay(key)}
                     />
                   ) : (
                     <div className="grow rounded-xl border border-dashed" />
@@ -343,6 +343,7 @@ export default function WorkPlanManager() {
                       dayLabel={label}
                       {...shift}
                       onChange={(updated) => updateShift(key, updated)}
+                      onPreview={() => setPreviewDay(key)}
                     />
                   ) : (
                     <div className="h-6 rounded-lg border border-dashed" />
