@@ -1,13 +1,16 @@
 import { useState } from "react"
+import { ScanSearchIcon } from "lucide-react"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 
 import { Label } from "@/components/ui/label"
+import { Button } from "@/components/ui/button"
 import type { ShiftDTO } from "@/types/workPlanTypes"
 
 export interface ShiftCardProps extends ShiftDTO {
   dayLabel?: string
   onChange?: (updated: ShiftDTO) => void
+  onPreview?: () => void
 }
 
 // ─── Formatting helpers ───────────────────────────────────────────────────────
@@ -44,6 +47,7 @@ function diffHours(startStr: string, endStr: string): number | undefined {
 export default function ShiftCard({
   dayLabel,
   onChange,
+  onPreview,
   date,
   startTime,
   endTime,
@@ -107,8 +111,19 @@ export default function ShiftCard({
             value={dateVal}
             onChange={(e) => setDateVal(e.target.value)}
             onBlur={commit}
-            className=""
+            className="min-w-0 flex-1"
           />
+          {onPreview && (
+            <Button
+              type="button"
+              size="icon-sm"
+              variant="ghost"
+              onClick={onPreview}
+              aria-label="PDF-Ausschnitt anzeigen"
+            >
+              <ScanSearchIcon />
+            </Button>
+          )}
         </div>
         <div className="mb-2 grid gap-0.5">
           <Label

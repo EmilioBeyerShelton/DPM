@@ -3,8 +3,9 @@ import { pdfjs } from "react-pdf"
 import type { TextItem } from "pdfjs-dist/types/src/display/api"
 import { Settings2Icon, UploadIcon } from "lucide-react"
 import PdfThumbnail from "@/components/PdfThumbnail"
-import PdfViewerDialog from "@/components/PdfViewerDialog"
+import PdfSectionPreviewDialog from "@/components/PdfSectionPreviewDialog"
 import defaultAreas from "@/config/defaultAreas"
+import { DAY_LABELS, type DayKey } from "@/config/dayLabels"
 import { mapTextNodesToWorkPlan } from "@/lib/workPlanMapper"
 import { dayEntryToShiftDTO } from "@/lib/shiftMapper"
 import type { AreaConfig, ShiftDTO, WorkPlanEntry } from "@/types/workPlanTypes"
@@ -40,18 +41,6 @@ interface TextNode {
   height: number
 }
 
-type DayKey = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun"
-
-const DAY_LABELS: Array<{ key: DayKey; label: string }> = [
-  { key: "mon", label: "Mo" },
-  { key: "tue", label: "Di" },
-  { key: "wed", label: "Mi" },
-  { key: "thu", label: "Do" },
-  { key: "fri", label: "Fr" },
-  { key: "sat", label: "Sa" },
-  { key: "sun", label: "So" },
-]
-
 function entryToShifts(
   entry: WorkPlanEntry,
   mainTitle: string,
@@ -80,7 +69,7 @@ export default function WorkPlanManager() {
   const [shifts, setShifts] = useState<Partial<Record<DayKey, ShiftDTO>>>({})
   const [pageHeight, setPageHeight] = useState(0)
   const [loadCount, setLoadCount] = useState(0)
-  const [pdfDialogOpen, setPdfDialogOpen] = useState(false)
+  const [previewDay, setPreviewDay] = useState<DayKey | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [mainTitle, setMainTitle] = useState("Arbeiten Flora")
   const [titleSeparator, setTitleSeparator] = useState(" - ")
@@ -97,6 +86,26 @@ export default function WorkPlanManager() {
 
   function updateShift(key: DayKey, updated: ShiftDTO) {
     setShifts((prev) => ({ ...prev, [key]: updated }))
+  }
+
+  function reviewFromFirstEntry() {
+    const firstDay = DAY_LABELS.find(({ key }) => {
+      const shift = shifts[key]
+      return shift && (shift.startTime || shift.endTime)
+    })
+    setPreviewDay(firstDay?.key ?? DAY_LABELS[0].key)
+  }
+
+  function exportIcs() {
+    const entries = DAY_LABELS.flatMap(({ key, label }) => {
+      const shift = shifts[key]
+      if (!shift || (!shift.startTime && !shift.endTime)) return []
+      return [{ key, label, shift }]
+    })
+    downloadIcs(
+      generateIcs(entries, { eventTitle: mainTitle, notePrefix }),
+      icsFilename(entries)
+    )
   }
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -241,13 +250,9 @@ export default function WorkPlanManager() {
         </div>
       ) : (
         <div className="flex flex-col items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setPdfDialogOpen(true)}
-            className="w-fit cursor-zoom-in overflow-hidden rounded border shadow-sm transition-opacity hover:opacity-80"
-          >
-            <PdfThumbnail file={pdfFile} width={320} />
-          </button>
+          <div className="w-fit overflow-hidden rounded border shadow-sm">
+            <PdfThumbnail file={pdfFile} width={120} />
+          </div>
           <div className="flex items-center gap-2">
             <p className="text-xs text-muted-foreground">{pdfFile.name}</p>
             <Button
@@ -259,10 +264,15 @@ export default function WorkPlanManager() {
             </Button>
           </div>
 
-          <PdfViewerDialog
+          <PdfSectionPreviewDialog
             file={pdfFile}
-            open={pdfDialogOpen}
-            onOpenChange={setPdfDialogOpen}
+            areaConfig={areaConfig}
+            open={previewDay !== null}
+            onOpenChange={(o) => !o && setPreviewDay(null)}
+            initialDay={previewDay ?? "mon"}
+            shifts={shifts}
+            onShiftChange={updateShift}
+            onExport={exportIcs}
           />
         </div>
       )}
@@ -333,32 +343,13 @@ export default function WorkPlanManager() {
 
       {/* ── Shift cards ──────────────────────────────────────────────── */}
       {mappedEntry && (
-        <div className="flex w-full flex-col items-center justify-center gap-12">
-          <div className="flex w-full flex-col items-center justify-center gap-6">
-            <Button
-              size="lg"
-              className="max-w-56"
-              onClick={() => {
-                const entries = DAY_LABELS.flatMap(({ key, label }) => {
-                  const shift = shifts[key]
-                  if (!shift || (!shift.startTime && !shift.endTime)) return []
-                  return [{ key, label, shift }]
-                })
-                downloadIcs(
-                  generateIcs(entries, {
-                    eventTitle: mainTitle,
-                    notePrefix,
-                  }),
-                  icsFilename(entries)
-                )
-              }}
-            >
-              In Kalender exportieren
-            </Button>
-          </div>
+        <div className="flex w-full flex-col items-center justify-center gap-12 pb-4">
+          <Button size="lg" className="max-w-72" onClick={reviewFromFirstEntry}>
+            Prüfen und zum Kalender
+          </Button>
 
           {/* Desktop: wrapping week table, min 180 px per day */}
-          <div className="hidden flex-wrap md:flex md:gap-2">
+          <div className="hidden flex-wrap justify-center md:flex md:gap-2">
             {DAY_LABELS.map(({ key, label }) => {
               const shift = shifts[key]
               const hasShift = shift && (shift.startTime || shift.endTime)
@@ -375,6 +366,7 @@ export default function WorkPlanManager() {
                       dayLabel={label}
                       {...shift}
                       onChange={(updated) => updateShift(key, updated)}
+                      onPreview={() => setPreviewDay(key)}
                     />
                   ) : (
                     <div className="flex w-5 grow items-center justify-center rounded-xl border border-dashed">
@@ -404,6 +396,7 @@ export default function WorkPlanManager() {
                       dayLabel={label}
                       {...shift}
                       onChange={(updated) => updateShift(key, updated)}
+                      onPreview={() => setPreviewDay(key)}
                     />
                   ) : (
                     <div className="flex h-6 justify-center rounded-lg border border-dashed">
@@ -413,28 +406,15 @@ export default function WorkPlanManager() {
                 </div>
               )
             })}
-          </div>
-          <div className="flex w-full items-center justify-center md:hidden">
-            <Button
-              size="lg"
-              className="max-w-56"
-              onClick={() => {
-                const entries = DAY_LABELS.flatMap(({ key, label }) => {
-                  const shift = shifts[key]
-                  if (!shift || (!shift.startTime && !shift.endTime)) return []
-                  return [{ key, label, shift }]
-                })
-                downloadIcs(
-                  generateIcs(entries, {
-                    eventTitle: mainTitle,
-                    notePrefix,
-                  }),
-                  icsFilename(entries)
-                )
-              }}
-            >
-              In Kalender exportieren
-            </Button>
+            <div className="mt-4 flex w-full flex-col items-center justify-center">
+              <Button
+                size="lg"
+                className="max-w-72"
+                onClick={reviewFromFirstEntry}
+              >
+                Prüfen und zum Kalender
+              </Button>
+            </div>
           </div>
         </div>
       )}
